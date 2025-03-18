@@ -1,0 +1,144 @@
+// Family Finance Management System - Reference Schema
+// Author: Claude
+// Date: March 17, 2025
+
+// ==========================================
+// SCHEMA: reference
+// Tabelas de referência utilizadas pelo sistema
+// ==========================================
+Schema reference {
+  // Currencies table
+  Table currencies {
+    id integer [pk, increment]
+    code varchar(3) [not null, unique]
+    name varchar [not null]
+    symbol varchar [not null]
+    is_default boolean [not null, default: false]
+
+    indexes {
+      code [unique]
+    }
+  }
+
+  // Daily currency exchange rates
+  Table currency_rates {
+    id integer [pk, increment]
+    source_currency_id integer [ref: > reference.currencies.id, not null]
+    target_currency_id integer [ref: > reference.currencies.id, not null]
+    rate decimal(15,5) [not null]
+    date date [not null]
+
+    indexes {
+      (source_currency_id, target_currency_id, date) [unique]
+      (date)
+    }
+  }
+
+  // Brazilian fixed income indices
+  Table fixed_income_indices {
+    id integer [pk, increment]
+    index_name varchar [not null]
+    index_code varchar [not null, unique]
+    description text
+    frequency varchar [not null] // daily, monthly
+    is_active boolean [not null, default: true]
+
+    indexes {
+      index_code [unique]
+    }
+  }
+
+  // Daily values for fixed income indices
+  Table fixed_income_index_values {
+    id integer [pk, increment]
+    index_id integer [ref: > reference.fixed_income_indices.id, not null]
+    date date [not null]
+    value decimal(15,5) [not null]
+    daily_change decimal(8,5)
+    monthly_change decimal(8,5)
+    yearly_change decimal(8,5)
+
+    indexes {
+      (index_id, date) [unique]
+      (date)
+    }
+  }
+
+  // Brazilian tax rates for different investment types
+  Table tax_rates {
+    id integer [pk, increment]
+    investment_type varchar [not null] // stocks, fixed_income, day_trade, etc.
+    holding_period_start integer // days, null means no minimum
+    holding_period_end integer // days, null means no maximum
+    tax_rate decimal(5,2) [not null]
+    effective_date date [not null]
+    end_date date
+
+    indexes {
+      (investment_type, effective_date)
+      (investment_type, holding_period_start, holding_period_end)
+    }
+  }
+
+  // Brazilian banks and financial institutions
+  Table financial_institutions {
+    id integer [pk, increment]
+    name varchar [not null]
+    short_name varchar
+    cnpj varchar(18) [unique]
+    ispb varchar(8) [unique] // Brazilian payment system identifier
+    compe_code varchar(3) [unique] // Brazilian bank code
+    institution_type varchar [not null] // bank, broker, fintech, etc.
+    is_active boolean [not null, default: true]
+
+    indexes {
+      cnpj [unique]
+      ispb [unique]
+      compe_code [unique]
+      (institution_type, is_active)
+    }
+  }
+
+  // Credit card brands and networks
+  Table card_networks {
+    id integer [pk, increment]
+    name varchar [not null, unique]
+    type varchar [not null] // credit, debit, both
+    country_coverage varchar [not null] // national, international
+
+    indexes {
+      name [unique]
+      (type, country_coverage)
+    }
+  }
+
+  // Brazilian states and regions
+  Table states {
+    id integer [pk, increment]
+    name varchar [not null, unique]
+    uf varchar(2) [not null, unique]
+    region varchar [not null] // Norte, Nordeste, Centro-Oeste, Sudeste, Sul
+    ibge_code varchar [not null, unique]
+
+    indexes {
+      uf [unique]
+      ibge_code [unique]
+      (region)
+    }
+  }
+
+  // Brazilian holidays
+  Table holidays {
+    id integer [pk, increment]
+    date date [not null]
+    name varchar [not null]
+    type varchar [not null] // national, state, municipal, banking
+    state_id integer [ref: > reference.states.id]
+    is_banking_holiday boolean [not null, default: true]
+
+    indexes {
+      (date, type, state_id) [unique]
+      (date, is_banking_holiday)
+    }
+  }
+}

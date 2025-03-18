@@ -1,0 +1,132 @@
+schema MySystem.Core {
+  import CommonTypes.* from "common/types.udsl"
+  import ThirdParty.Customer as ExtCustomer from "external/models.udsl"
+
+  // Type aliases with inline constraints
+  type Email = String ~ /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/ "Valid email format"
+  type PosInt = Integer > 0 "Positive integer"
+  type Money = Decimal(10,2) "Monetary amount with 2 decimal places"
+
+  // Enum with concise syntax
+  enum OrderStatus "Order fulfillment status" {
+    PENDING = 0    "Order received but not processed"
+    PROCESSING = 1 "Order is being prepared"
+    SHIPPED = 2    "Order has been shipped"
+    DELIVERED = 3  "Order has been delivered"
+    CANCELLED = 4  "Order was cancelled"
+  }
+
+  // Record definition with concise syntax
+  record User "System user" {
+    id: UUID#                      "Unique identifier"
+    email: Email!                  "Primary contact email"
+    name: String(100)               "Full name"
+    phone: String? ~ /^\+?[0-9]{10,15}$/ "Optional phone number"
+    birthDate: Date?                "Birth date if provided"
+    age: PosInt? @computed(YEAR(CURRENT_DATE) - YEAR(birthDate)) "Age in years"
+
+    // Relationships defined within the record
+    @relation {
+      orders: @oneToMany(Order, "userId") "User's orders"
+    }
+
+    // Validation with multi-line comments
+    @validate {
+      "age >= 18 || hasParentalConsent": """
+        Users under 18 need parental consent.
+        This is a legal requirement in most jurisdictions.
+      """
+    }
+  }
+
+  record Order "Customer order" {
+    id: UUID #                           "Order identifier"
+    userId: UUID fk(User.id)                "Reference to ordering user"
+    total: Money                         "Order total amount"
+    status: OrderStatus = PENDING        "Current order status"
+    createdAt: Timestamp = NOW()         "When order was created"
+
+    // Relationships defined within the record
+    @relation {
+      user: @manyToOne(User, "userId") "Order owner" % isso é desnecessário
+      items: @oneToMany(OrderItem, "orderId") @cascade(delete) "Items in this order"
+    }
+
+    @access {
+      create: ["admin", "sales"]
+      read: ["admin", "sales", "customer_self"]
+      update: ["admin", "sales"]
+      delete: ["admin"]
+    }
+  }
+
+  record OrderItem "Individual line item in an order" {
+    id: UUID #                         "Item identifier"
+    orderId: UUID fk(Order.id)            "Parent order"
+    productId: UUID fk(Product.id)        "Product reference"
+    quantity: PosInt = 1               "Number of items"
+    unitPrice: Money                   "Price per unit"
+    totalPrice: Money @computed(quantity * unitPrice) "Line item total"
+
+    @relation {
+      order: @manyToOne(Order, "orderId") "Parent order" % desnecessário
+      product: @manyToOne(Product, "productId") "Associated product" % desnecessário
+    }
+  }
+
+  // Example of record with composite primary key
+  record OrderHistory "Order state change log" {
+    orderId: UUID # fk(Order.id)     "Order reference"
+    timestamp: Timestamp #         "When change occurred"
+    fromStatus: OrderStatus          "Previous status"
+    toStatus: OrderStatus            "New status"
+    notes: String?                   "Change notes"
+  }
+
+  // Self-referential relationship example
+  record Employee "Company employee" {
+    id: UUID #                       "Employee ID"
+    name: String                     "Full name"
+    managerId: UUID? fk(Employee.id)    "Manager reference, null for top executives"
+
+    @relation {
+      manager: @manyToOne(Employee, "managerId") "Employee's manager" % desnecessário
+      reports: @oneToMany(Employee, "managerId") "Direct reports"
+    }
+  }
+
+  // Many-to-many relationship example
+  record Product "Purchasable item" {
+    id: UUID ^                       "Product ID"
+    name: String !                   "Product name"
+    price: Money                     "Current price"
+
+    @relation { % não fazer many to many, nem fazer many to one.
+      tags: @manyToMany(Tag, ProductTag, "productId", "tagId") "Product categorization tags"
+    }
+  }
+
+  record Tag "Product categorization" {
+    id: UUID #                       "Tag ID"
+    name: String !                   "Tag name"
+
+    @relation { % não fazer many to many, nem fazer many to one.
+      products: @manyToMany(Product, ProductTag, "tagId", "productId") "Products with this tag"
+    }
+  }
+
+  record ProductTag "Product-tag association" {
+    productId: UUID # fk(Product.id)   "Product reference"
+    tagId: UUID # >Tag.id           "Tag reference"
+  }
+
+  // Extension of imported type
+  record Customer(ExtCustomer) "Extended customer model" {
+    loyaltyPoints: Integer = 0 "Reward program points"
+    notes: String? """
+      Additional customer information.
+      Can include support interactions,
+      preferences, or special requirements.
+    """
+  }
+}
