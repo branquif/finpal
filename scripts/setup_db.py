@@ -3,12 +3,12 @@ import os
 import sqlite3
 from pathlib import Path
 
-from finpal import config
+from finpal.config import settings
 
 def setup_database():
     """Configura o banco de dados SQLite inicial."""
     # Garante que o diretório data existe
-    db_path = Path(config.DB_PATH)
+    db_path = Path(settings.DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Verifica se o banco já existe
