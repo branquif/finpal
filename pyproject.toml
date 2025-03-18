@@ -1,0 +1,67 @@
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "finally"
+version = "0.1.0"
+description = "Sistema de Gestão Financeira"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "Seu Nome", email = "seu.email@example.com"},
+]
+dependencies = [
+    "fastapi>=0.115",
+    "sqlalchemy>=2",
+    "alembic>=1.12.0",
+    "pydantic>=2",
+    "typer>=0.9.0",
+    "rich>=13.6.0",
+    "textual>=0.38.1",
+    "streamlit>=1.27.2",
+    "plotly>=5.17.0",
+    "pandas>=2.1.1",
+    "uvicorn>=0.23.2",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.2",
+    "black>=23.9.1",
+    "isort>=5.12.0",
+    "flake8>=6.1.0",
+]
+
+[project.scripts]
+finally = "finally.cli.main:app"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.nu]
+# Configurações específicas do nu
+scripts = [
+    # Comandos para executar os diferentes componentes da aplicação
+    {name = "api", cmd = "python -m finally.api.main"},
+    {name = "web", cmd = "streamlit run finally/web/app.py"},
+    {name = "tui", cmd = "python -m finally.cli.tui.app"},
+    {name = "cli", cmd = "python -m finally.cli.main"},
+
+    # Comandos para setup e manutenção
+    {name = "setup-db", cmd = "python scripts/setup_db.py && alembic upgrade head"},
+    {name = "import-data", cmd = "python scripts/import_data.py --type reference --dir ./data/reference"},
+    {name = "test", cmd = "pytest tests"},
+    {name = "lint", cmd = "flake8 finally tests"},
+    {name = "format", cmd = "black finally tests && isort finally tests"},
+    {name = "migrate", cmd = "alembic upgrade head"},
+    {name = "backup", cmd = "python scripts/backup.py"},
+]
