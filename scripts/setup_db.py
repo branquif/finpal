@@ -3,7 +3,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from finally import config
+from finpal import config
 
 def setup_database():
     """Configura o banco de dados SQLite inicial."""
