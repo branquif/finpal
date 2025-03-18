@@ -4,7 +4,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "finally"
+name = "finpal"
 version = "0.1.0"
 description = "Sistema de Gestão Financeira"
 readme = "README.md"
